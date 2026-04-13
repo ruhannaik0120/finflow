@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: FINFLOW_DB
+    schema: RAW
+    tables:
+     - name: raw_stock_prices
+     - name: raw_macro_indicators

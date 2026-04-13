@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: mart_portfolio
+    description: "Daily portfolio metrics including returns, moving averages and drawdown"
+    columns:
+      - name: ticker
+        description: "Stock ticker symbol"
+        tests:
+          - not_null
+      - name: trade_date
+        description: "Trading date"
+        tests:
+          - not_null
+      - name: close_price
+        description: "Closing price"
+        tests:
+          - not_null
+
+  - name: mart_risk
+    description: "Risk metrics including Sharpe ratio, VaR and max drawdown"
+    columns:
+      - name: ticker
+        tests:
+          - not_null
+      - name: trade_date
+        tests:
+          - not_null
+
+  - name: mart_macro_correlation
+    description: "Rolling correlation between stock returns and macro indicators"
+    columns:
+      - name: ticker
+        tests:
+          - not_null
+      - name: indicator_name
+        tests:
+          - not_null

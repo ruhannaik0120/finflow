@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: stg_stock_prices
+    description: "Cleaned and deduplicated stock price data from Alpha Vantage"
+    columns:
+      - name: ticker
+        description: "Stock ticker symbol"
+        tests:
+          - not_null
+      - name: trade_date
+        description: "Trading date"
+        tests:
+          - not_null
+      - name: close_price
+        description: "Closing price"
+        tests:
+          - not_null
+      - name: volume
+        description: "Trading volume"
+        tests:
+          - not_null
+
+  - name: stg_macro_indicators
+    description: "Cleaned macroeconomic indicators from FRED"
+    columns:
+      - name: indicator_name
+        description: "Name of the macro indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['CONSUMER PRICE INDEX', 'FEDERAL FUNDS RATE',
+                        'GROSS DOMESTIC PRODUCT', 'UNEMPLOYMENT RATE',
+                        '10 YEAR TREASURY RATE']
+      - name: indicator_date
+        description: "Trading date"
+        tests:
+          - not_null
+      - name: value
+        description: "Value of the indicator"
+        tests:
+          - not_null
