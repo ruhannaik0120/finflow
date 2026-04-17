@@ -37,13 +37,51 @@ st.divider()
 st.sidebar.title("Filters")
 st.sidebar.markdown("Use the filters below to explore the data")
 
-ticker_options = ["AAPL", "MSFT", "GOOGL", "TSLA", "JPM"]
+ticker_options = load_data("""
+    SELECT DISTINCT ticker 
+    FROM FINFLOW_DB.MART.mart_portfolio 
+    ORDER BY ticker
+""")["TICKER"].tolist()
 
 selected_tickers = st.sidebar.multiselect(
     "Select Tickers",
     options=ticker_options,
     default=ticker_options
 )
+
+st.sidebar.divider()
+st.sidebar.subheader("Add New Ticker")
+
+new_ticker = st.sidebar.text_input("Enter Ticker Symbol", placeholder="eg NFLX").upper()
+
+if st.sidebar.button("Add Ticker"):
+    if new_ticker == "":
+        st.sidebar.error("Please enter a ticker symbol")
+    else:
+        with st.spinner(f"Fetching data for {new_ticker}..."):
+            import subprocess
+            ingest_path = r"C:\Users\ruhan\OneDrive\Desktop\finflow\ingestion\ingest_stocks.py"
+            dbt_path = r"C:\Users\ruhan\OneDrive\Desktop\finflow\finflow_dbt"
+            
+            ingest_result = subprocess.run(
+                ["python", ingest_path, new_ticker],
+                capture_output=True, text=True
+            )
+            
+            if ingest_result.returncode != 0:
+                st.sidebar.error(f"Ingestion failed: {ingest_result.stderr}")
+            else:
+                dbt_result = subprocess.run(
+                    ["dbt", "run"],
+                    capture_output=True, text=True,
+                    cwd=dbt_path
+                )
+                if dbt_result.returncode != 0:
+                    st.sidebar.error(f"dbt failed: {dbt_result.stderr}")
+                else:
+                    st.sidebar.success(f"{new_ticker} added successfully!")
+                    st.cache_data.clear()
+                    st.rerun()
 
 portfolio_df = load_data("""
     SELECT 
@@ -59,6 +97,41 @@ portfolio_df = load_data("""
 """)
 
 portfolio_df = portfolio_df[portfolio_df["TICKER"].isin(selected_tickers)]
+
+st.subheader("Portfolio Summary")
+
+summary = load_data("""
+    SELECT
+        ticker,
+        MAX(close_price) as max_price,
+        MIN(close_price) as min_price,
+        ROUND(AVG(rolling_volatility_20d), 2) as avg_volatility,
+        ROUND(MAX(cumulative_return_pct), 2) as best_return,
+        ROUND(MIN(drawdown_pct), 2) as max_drawdown
+    FROM FINFLOW_DB.MART.mart_portfolio
+    WHERE ticker IN ({})
+    GROUP BY ticker
+""".format(",".join(f"'{t}'" for t in ticker_options)))
+
+best_ticker = summary.loc[summary["BEST_RETURN"].idxmax(), "TICKER"]
+worst_ticker = summary.loc[summary["BEST_RETURN"].idxmin(), "TICKER"]
+most_volatile = summary.loc[summary["AVG_VOLATILITY"].idxmax(), "TICKER"]
+best_return_val = summary["BEST_RETURN"].max()
+worst_return_val = summary["BEST_RETURN"].min()
+highest_vol = summary["AVG_VOLATILITY"].max()
+
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    st.metric(label="Best Performer", value=best_ticker, delta=f"{best_return_val}%")
+with col2:
+    st.metric(label="Worst Performer", value=worst_ticker, delta=f"{worst_return_val}%")
+with col3:
+    st.metric(label="Most Volatile", value=most_volatile)
+with col4:
+    st.metric(label="Avg Volatility", value=f"{highest_vol}%")
+with col5:
+    st.metric(label="Tickers Tracked", value=len(ticker_options))
 
 st.subheader("Stock Price History")
 
@@ -164,7 +237,7 @@ if has_correlation:
         title=f"20-Day Rolling Correlation with {selected_indicator}"
     )
     st.plotly_chart(fig_macro, use_container_width=True)
-    
+
 else:
     st.markdown(f"**Latest {selected_indicator} Values**")
     cols = st.columns(len(macro_filtered))

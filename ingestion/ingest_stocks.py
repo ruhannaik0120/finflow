@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import snowflake.connector
+import sys
 from dotenv import load_dotenv
 import os
 
@@ -81,10 +82,15 @@ def fetch_and_load(ticker):
 
     print(f"  Done loading {ticker}.")
 
-#Run for all tickers 
-for ticker in TICKERS:
+# If a ticker is passed as argument, use that. Otherwise run all default tickers.
+if len(sys.argv) > 1:
+    tickers_to_run = [sys.argv[1].upper()]
+else:
+    tickers_to_run = TICKERS
+
+for ticker in tickers_to_run:
     fetch_and_load(ticker)
 
 cursor.close()
 conn.close()
-print("\nData loaded into Snowflake.")
+print("\nAll done.")
