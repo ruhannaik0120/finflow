@@ -83,6 +83,18 @@ if st.sidebar.button("Add Ticker"):
                     st.cache_data.clear()
                     st.rerun()
 
+st.sidebar.divider()
+st.sidebar.subheader("Portfolio Report")
+
+if st.sidebar.button("Send Portfolio Summary Email"):
+    with st.spinner("Sending email..."):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("CALL send_portfolio_summary()")
+        result = cursor.fetchone()
+        cursor.close()
+    st.sidebar.success("Email sent to your inbox!")
+
 portfolio_df = load_data("""
     SELECT 
         ticker,
