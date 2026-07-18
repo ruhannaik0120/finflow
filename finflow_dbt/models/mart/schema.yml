@@ -16,6 +16,9 @@ models:
         description: "Closing price"
         tests:
           - not_null
+      - name: updated_at
+        tests:
+          - not_null
 
   - name: mart_risk
     description: "Risk metrics including Sharpe ratio, VaR and max drawdown"
@@ -26,6 +29,12 @@ models:
       - name: trade_date
         tests:
           - not_null
+      - name: cumulative_return_pct
+        tests:
+          - not_null
+      - name: updated_at
+        tests:
+          - not_null
 
   - name: mart_macro_correlation
     description: "Rolling correlation between stock returns and macro indicators"
@@ -34,5 +43,14 @@ models:
         tests:
           - not_null
       - name: indicator_name
+        tests:
+          - not_null
+      - name: trade_date
+        tests:
+          - not_null
+      - name: indicator_value
+        tests:
+          - not_null
+      - name: updated_at
         tests:
           - not_null

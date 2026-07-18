@@ -1,5 +1,10 @@
 WITH source AS (
-    SELECT * FROM {{ source('raw', 'raw_macro_indicators') }}
+    SELECT
+        indicator_name,
+        indicator_date,
+        value,
+        loaded_at
+    FROM {{ source('raw', 'raw_macro_indicators') }}
 ),
 
 cleaned AS (

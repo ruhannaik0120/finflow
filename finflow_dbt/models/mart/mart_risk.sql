@@ -1,5 +1,13 @@
 WITH portfolio AS (
-    SELECT * FROM {{ ref('mart_portfolio') }}
+    SELECT
+        ticker,
+        trade_date,
+        daily_return_pct,
+        rolling_volatility_20d,
+        drawdown_pct,
+        cumulative_return_pct,
+        volume
+    FROM {{ ref('mart_portfolio') }}
 ),
 
 -- Sharpe ratio needs average return and volatility

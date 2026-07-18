@@ -5,5 +5,11 @@ sources:
     database: FINFLOW_DB
     schema: RAW
     tables:
-     - name: raw_stock_prices
-     - name: raw_macro_indicators
+      - name: raw_stock_prices
+        config:
+          loaded_at_field: loaded_at
+          freshness:
+            warn_after: {count: 3, period: day}
+            error_after: {count: 7, period: day}
+      - name: raw_macro_indicators
+      - name: pipeline_logs

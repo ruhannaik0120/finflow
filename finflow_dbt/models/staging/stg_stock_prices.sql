@@ -1,5 +1,14 @@
 WITH source AS (
-    SELECT * FROM {{ source('raw', 'raw_stock_prices') }}
+    SELECT
+        ticker,
+        trade_date,
+        open_price,
+        high_price,
+        low_price,
+        close_price,
+        volume,
+        loaded_at
+    FROM {{ source('raw', 'raw_stock_prices') }}
 ),
 
 cleaned AS (
