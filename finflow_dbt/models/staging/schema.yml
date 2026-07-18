@@ -20,6 +20,10 @@ models:
         description: "Trading volume"
         tests:
           - not_null
+      - name: loaded_at
+        description: "UTC load timestamp from the ingestion run"
+        tests:
+          - not_null
 
   - name: stg_macro_indicators
     description: "Cleaned macroeconomic indicators from FRED"
@@ -39,5 +43,9 @@ models:
           - not_null
       - name: value
         description: "Value of the indicator"
+        tests:
+          - not_null
+      - name: loaded_at
+        description: "UTC load timestamp from the ingestion run"
         tests:
           - not_null

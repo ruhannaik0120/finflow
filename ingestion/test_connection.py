@@ -1,21 +1,29 @@
-import snowflake.connector
+"""Manual Snowflake connectivity check (not part of the unittest suite)."""
+
+from pathlib import Path
+import sys
+
 from dotenv import load_dotenv
-import os
 
-load_dotenv()
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-conn = snowflake.connector.connect(
-    account=os.getenv('SNOWFLAKE_ACCOUNT'),
-    user=os.getenv('SNOWFLAKE_USER'),
-    password=os.getenv('SNOWFLAKE_PASSWORD'),
-    database=os.getenv('SNOWFLAKE_DATABASE'),
-    warehouse=os.getenv('SNOWFLAKE_WAREHOUSE')
-)
+from ingestion.pipeline_utils import create_snowflake_connection  # noqa: E402
 
-cursor = conn.cursor()
-cursor.execute("SELECT CURRENT_VERSION()")
-row = cursor.fetchone()
-print(f"Connected successfully! Snowflake version: {row[0]}")
 
-cursor.close()
-conn.close()
+def main() -> int:
+    load_dotenv()
+    connection = create_snowflake_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute("SELECT CURRENT_VERSION()")
+        cursor.fetchone()
+        print("Connected successfully to Snowflake.")
+        return 0
+    finally:
+        cursor.close()
+        connection.close()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

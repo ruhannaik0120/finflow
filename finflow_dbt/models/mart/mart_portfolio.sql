@@ -1,5 +1,13 @@
 WITH stock_data AS (
-    SELECT * FROM {{ ref('stg_stock_prices') }}
+    SELECT
+        ticker,
+        trade_date,
+        open_price,
+        high_price,
+        low_price,
+        close_price,
+        volume
+    FROM {{ ref('stg_stock_prices') }}
 ),
 
 -- Step 1: calculate daily return first on its own
