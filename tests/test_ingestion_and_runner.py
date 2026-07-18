@@ -179,14 +179,20 @@ class RunnerTests(unittest.TestCase):
     def test_default_stage_order(self):
         with patch.object(run_pipeline, "run_stage", return_value=0) as stage:
             self.assertEqual(run_pipeline.run_pipeline(), 0)
-        self.assertEqual([call.args[0] for call in stage.call_args_list], ["stock ingestion", "macro ingestion", "dbt build"])
+        self.assertEqual(
+            [call.args[0] for call in stage.call_args_list],
+            ["stock ingestion", "macro ingestion", "dbt source freshness", "dbt build"],
+        )
         self.assertEqual(stage.call_args_list[0].args[1][0], run_pipeline.sys.executable)
-        self.assertEqual(stage.call_args_list[2].args[1][-1], "build")
+        self.assertEqual(stage.call_args_list[3].args[1][-1], "build")
 
     def test_dynamic_ticker_skips_macro(self):
         with patch.object(run_pipeline, "run_stage", return_value=0) as stage:
             run_pipeline.run_pipeline("NFLX")
-        self.assertEqual([call.args[0] for call in stage.call_args_list], ["stock ingestion", "dbt build"])
+        self.assertEqual(
+            [call.args[0] for call in stage.call_args_list],
+            ["stock ingestion", "dbt source freshness", "dbt build"],
+        )
         self.assertIn("NFLX", stage.call_args_list[0].args[1])
 
     def test_ingestion_failure_prevents_dbt(self):
@@ -194,11 +200,43 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(run_pipeline.run_pipeline(), 7)
         self.assertEqual(stage.call_count, 1)
 
+    def test_freshness_failure_prevents_dbt_build(self):
+        with patch.object(run_pipeline, "run_stage", side_effect=[0, 0, 23]) as stage:
+            self.assertEqual(run_pipeline.run_pipeline(), 23)
+        self.assertEqual(
+            [call.args[0] for call in stage.call_args_list],
+            ["stock ingestion", "macro ingestion", "dbt source freshness"],
+        )
+
+    def test_freshness_uses_selector_shared_dbt_executable_and_bounded_timeout(self):
+        with patch.object(run_pipeline, "run_stage", return_value=0) as stage, patch.object(
+            run_pipeline, "dbt_executable", return_value="resolved-dbt"
+        ) as resolve_dbt:
+            self.assertEqual(run_pipeline.run_pipeline("NFLX"), 0)
+
+        resolve_dbt.assert_called_once_with()
+        freshness = stage.call_args_list[1]
+        build = stage.call_args_list[2]
+        self.assertEqual(
+            freshness.args[1],
+            [
+                "resolved-dbt",
+                "source",
+                "freshness",
+                "--select",
+                "source:raw.raw_stock_prices",
+            ],
+        )
+        self.assertEqual(build.args[1], ["resolved-dbt", "build"])
+        self.assertEqual(freshness.kwargs["cwd"], run_pipeline.REPOSITORY_ROOT / "finflow_dbt")
+        self.assertEqual(freshness.kwargs["timeout"], run_pipeline.DBT_TIMEOUT_SECONDS)
+
     def test_timeout_is_bounded_and_returns_nonzero(self):
         with patch.object(run_pipeline.subprocess, "run", side_effect=run_pipeline.subprocess.TimeoutExpired("x", 1)) as process:
             code = run_pipeline.run_stage("test", ["command"], cwd=run_pipeline.REPOSITORY_ROOT, timeout=1)
         self.assertEqual(code, 124)
         self.assertEqual(process.call_args.kwargs["shell"], False)
+        self.assertEqual(process.call_args.kwargs["timeout"], 1)
 
     def test_runner_import_has_no_subprocess_side_effect(self):
         with patch("subprocess.run") as process:

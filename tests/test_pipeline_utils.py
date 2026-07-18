@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from ingestion.pipeline_utils import (
     AUDIT_INSERT_SQL,
     AUDIT_TABLE_SQL,
     PipelineError,
     build_run_result,
+    create_snowflake_connection,
     extract_merge_result,
     insert_audit_row,
     new_temp_table_name,
@@ -130,6 +131,31 @@ class AuditAndValidationTests(unittest.TestCase):
             validate_environment(("ONE", "TWO"), {"ONE": "secret"})
         self.assertIn("TWO", caught.exception.public_message)
         self.assertNotIn("secret", caught.exception.public_message)
+
+    def test_snowflake_connection_uses_configured_database_warehouse_and_raw_schema(self):
+        environment = {
+            "SNOWFLAKE_ACCOUNT": "configured-account",
+            "SNOWFLAKE_USER": "configured-user",
+            "SNOWFLAKE_PASSWORD": "configured-password",
+            "SNOWFLAKE_DATABASE": "configured-database",
+            "SNOWFLAKE_WAREHOUSE": "configured-warehouse",
+        }
+        expected_connection = object()
+        with patch(
+            "ingestion.pipeline_utils.snowflake.connector.connect",
+            return_value=expected_connection,
+        ) as connect:
+            connection = create_snowflake_connection(environment)
+
+        self.assertIs(connection, expected_connection)
+        connect.assert_called_once_with(
+            account=environment["SNOWFLAKE_ACCOUNT"],
+            user=environment["SNOWFLAKE_USER"],
+            password=environment["SNOWFLAKE_PASSWORD"],
+            database=environment["SNOWFLAKE_DATABASE"],
+            warehouse=environment["SNOWFLAKE_WAREHOUSE"],
+            schema="RAW",
+        )
 
 
 if __name__ == "__main__":

@@ -81,9 +81,26 @@ def run_pipeline(ticker: Optional[str] = None) -> int:
             LOGGER.error("Ingestion failed; dbt build was not started.")
             return macro_code
 
+    dbt_command = dbt_executable()
+    freshness_code = run_stage(
+        "dbt source freshness",
+        [
+            dbt_command,
+            "source",
+            "freshness",
+            "--select",
+            "source:raw.raw_stock_prices",
+        ],
+        cwd=REPOSITORY_ROOT / "finflow_dbt",
+        timeout=DBT_TIMEOUT_SECONDS,
+    )
+    if freshness_code != 0:
+        LOGGER.error("Source freshness failed; dbt build was not started.")
+        return freshness_code
+
     return run_stage(
         "dbt build",
-        [dbt_executable(), "build"],
+        [dbt_command, "build"],
         cwd=REPOSITORY_ROOT / "finflow_dbt",
         timeout=DBT_TIMEOUT_SECONDS,
     )

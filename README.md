@@ -83,7 +83,7 @@ From the repository root:
 python run_pipeline.py
 ```
 
-This runs the five default stock tickers, all five macro indicators, then `dbt build`. dbt is not started if ingestion fails.
+This runs the five default stock tickers, all five macro indicators, the stock-source freshness gate, then `dbt build`. Freshness executes as `dbt source freshness --select source:raw.raw_stock_prices`. The model build is not started if ingestion or freshness fails.
 
 To add or refresh one ticker without rerunning macro ingestion:
 
@@ -115,11 +115,11 @@ The **Pipeline Operations** expander shows the latest overall state and completi
 
 ## Data quality and freshness
 
-`dbt build` is the transformation and quality gate. The project has **28 dbt tests**: 23 schema tests plus five singular SQL tests for stock-key uniqueness, valid OHLCV values, macro-key uniqueness, audit-count invariants, and supported audit statuses/pipeline names.
+Source freshness runs before `dbt build`; an error result prevents model building and its exit code is propagated. `dbt build` is the transformation and quality gate. The project has **28 dbt tests**: 23 schema tests plus five singular SQL tests for stock-key uniqueness, valid OHLCV values, macro-key uniqueness, audit-count invariants, and supported audit statuses/pipeline names.
 
 Stock-source freshness warns after three days and errors after seven days so weekends and market holidays are tolerated. Monthly and quarterly macro series intentionally have no unrealistic source freshness threshold; macro pipeline execution health is visible through `pipeline_logs`.
 
-The fake-only standard-library suite has **65 Python tests** and does not call live APIs or Snowflake:
+The fake-only standard-library suite has **68 Python tests** and does not call live APIs or Snowflake:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -128,4 +128,4 @@ cd finflow_dbt
 dbt parse --no-partial-parse
 ```
 
-Do not run ingestion or `dbt build` against a live target as part of ordinary static verification.
+Do not run ingestion, source freshness, or `dbt build` against a live target as part of ordinary static verification.

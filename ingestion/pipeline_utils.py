@@ -135,6 +135,7 @@ def create_snowflake_connection(
         password=config["SNOWFLAKE_PASSWORD"],
         database=config["SNOWFLAKE_DATABASE"],
         warehouse=config["SNOWFLAKE_WAREHOUSE"],
+        schema="RAW",
     )
 
 
